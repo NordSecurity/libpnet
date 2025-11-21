@@ -309,9 +309,9 @@ fn queries_length(packet: &DnsPacket) -> usize {
 fn responses_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
+    for _ in 0..packet.get_response_count() {
         match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+            Some(response) => length += response.packet_size(),
             None => break,
         }
     }
@@ -321,9 +321,9 @@ fn responses_length(packet: &DnsPacket) -> usize {
 fn authority_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet) + responses_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
+    for _ in 0..packet.get_authority_rr_count() {
         match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+            Some(authority) => length += authority.packet_size(),
             None => break,
         }
     }
@@ -333,9 +333,9 @@ fn authority_length(packet: &DnsPacket) -> usize {
 fn additional_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet) + responses_length(packet) + authority_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
+    for _ in 0..packet.get_additional_rr_count() {
         match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+            Some(additional) => length += additional.packet_size(),
             None => break,
         }
     }
@@ -529,6 +529,29 @@ fn test_dns_response_packet() {
     );
     assert_eq!(packet.get_authorities().len(), 0);
     assert_eq!(packet.get_additional().len(), 0);
+}
+
+#[test]
+// Regression test to make sure the length of the raw RRs are correct
+fn test_dns_raw_section_lens() {
+    let data = [
+        // --- Header (12 bytes) ---
+        0x12, 0x34, 0x81, 0x80, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        // --- Question Section ---
+        0x01, 0x61, 0x03, 0x63, 0x6f, 0x6d, 0x00, // Name: "a.com"
+        0x00, 0x01, // Type: A (Host Address)
+        0x00, 0x01, // Class: IN
+        // --- Authority Section (SOA Record) ---
+        0xC0, 0x0c, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x1C, 0x02, 0x6e, 0x73,
+        0x00, 0x02, 0x61, 0x62, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
+        0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+    ];
+    let packet = DnsPacket::new(&data).expect("Failed to parse dns packet");
+
+    assert_eq!(packet.get_queries_raw().len(), 11);
+    assert_eq!(packet.get_responses_raw().len(), 0);
+    assert_eq!(packet.get_authorities_raw().len(), 40);
+    assert_eq!(packet.get_additional_raw().len(), 0);
 }
 
 #[test]
