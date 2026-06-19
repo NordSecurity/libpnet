@@ -1,20 +1,18 @@
 #![no_main]
-extern crate libfuzzer_sys;
-extern crate pnet;
 
+use std::hint::black_box;
+
+use libfuzzer_sys::fuzz_target;
 use pnet::packet::Packet;
 use pnet::packet::ethernet::EthernetPacket;
 
-#[export_name="rust_fuzzer_test_input"]
-pub extern fn go(data: &[u8]) {
+fuzz_target!(|data: &[u8]| {
 	if let Some(eth) = EthernetPacket::new(data) {
-		let _s = eth.get_source();
-		let _d = eth.get_destination();
-		let _t = eth.get_ethertype();
-		let pl = eth.payload();
-		for b in pl.iter() {
-			*b;
+		black_box(eth.get_source());
+		black_box(eth.get_destination());
+		black_box(eth.get_ethertype());
+		for b in eth.payload().iter() {
+			black_box(*b);
 		}
 	}
-
-}
+});
