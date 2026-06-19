@@ -1,6 +1,6 @@
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::{fmt, str};
+use core::fmt;
 use pnet_macros::packet;
 use pnet_macros_support::packet::{Packet, PacketSize, PrimitiveValues};
 use pnet_macros_support::types::{u1, u16be, u32be, u4};
@@ -479,19 +479,21 @@ impl DnsQuery {
         let name = &self.qname;
         let mut qname = String::new();
         let mut offset = 0;
-        loop {
-            let label_len = name[offset] as usize;
+        // Walk the length-prefixed labels with checked access so malformed names
+        // (truncated labels, missing terminator, non-UTF-8 bytes) cannot panic.
+        while let Some(&label_len) = name.get(offset) {
+            let label_len = label_len as usize;
             if label_len == 0 {
                 break;
             }
+            let label = match name.get(offset + 1..offset + 1 + label_len) {
+                Some(label) => label,
+                None => break,
+            };
             if !qname.is_empty() {
                 qname.push('.');
             }
-            qname.push_str(
-                str::from_utf8(&name[offset + 1..offset + 1 + label_len])
-                    .ok()
-                    .unwrap(),
-            );
+            qname.push_str(&String::from_utf8_lossy(label));
             offset += label_len + 1;
         }
         qname
