@@ -37,8 +37,8 @@ pub struct Ipv6 {
 }
 
 impl<'p> ExtensionIterable<'p> {
-    pub fn new(buf: &[u8]) -> ExtensionIterable {
-        ExtensionIterable { buf: buf }
+    pub fn new(buf: &[u8]) -> ExtensionIterable<'_> {
+        ExtensionIterable { buf }
     }
 }
 

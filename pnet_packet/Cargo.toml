@@ -19,6 +19,7 @@ pnet_macros = { path = "../pnet_macros", version = "0.35.0" }
 [features]
 std = ["pnet_base/std"]
 default = ["std"]
+benchmark = []
 
 [dev-dependencies]
 hex = "0.4.3"
