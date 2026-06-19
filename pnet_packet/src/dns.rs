@@ -294,12 +294,27 @@ pub struct Dns {
     pub payload: Vec<u8>,
 }
 
+// Size of one parsed sub-record within `slice`, or None if it does not fully fit.
+// `packet_size()` of a DnsResponse is `12 + data_len`, where `data_len` is read
+// from the (untrusted) packet, so a record can claim to be larger than the bytes
+// actually present. Rejecting records that overrun the buffer keeps the section
+// lengths — and therefore every downstream slice — within bounds.
+fn fitting_query_size(slice: &[u8]) -> Option<usize> {
+    let size = DnsQueryPacket::new(slice)?.packet_size();
+    (size > 0 && size <= slice.len()).then_some(size)
+}
+
+fn fitting_response_size(slice: &[u8]) -> Option<usize> {
+    let size = DnsResponsePacket::new(slice)?.packet_size();
+    (size > 0 && size <= slice.len()).then_some(size)
+}
+
 fn queries_length(packet: &DnsPacket) -> usize {
     let base = 12;
     let mut length = 0;
     for _ in 0..packet.get_query_count() {
-        match DnsQueryPacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+        match packet.packet().get(base + length..).and_then(fitting_query_size) {
+            Some(size) => length += size,
             None => break,
         }
     }
@@ -309,9 +324,9 @@ fn queries_length(packet: &DnsPacket) -> usize {
 fn responses_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
-        match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+    for _ in 0..packet.get_response_count() {
+        match packet.packet().get(base + length..).and_then(fitting_response_size) {
+            Some(size) => length += size,
             None => break,
         }
     }
@@ -321,9 +336,9 @@ fn responses_length(packet: &DnsPacket) -> usize {
 fn authority_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet) + responses_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
-        match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+    for _ in 0..packet.get_authority_rr_count() {
+        match packet.packet().get(base + length..).and_then(fitting_response_size) {
+            Some(size) => length += size,
             None => break,
         }
     }
@@ -333,9 +348,9 @@ fn authority_length(packet: &DnsPacket) -> usize {
 fn additional_length(packet: &DnsPacket) -> usize {
     let base = 12 + queries_length(packet) + responses_length(packet) + authority_length(packet);
     let mut length = 0;
-    for _ in 0..packet.get_query_count() {
-        match DnsResponsePacket::new(&packet.packet()[base + length..]) {
-            Some(query) => length += query.packet_size(),
+    for _ in 0..packet.get_additional_rr_count() {
+        match packet.packet().get(base + length..).and_then(fitting_response_size) {
+            Some(size) => length += size,
             None => break,
         }
     }
