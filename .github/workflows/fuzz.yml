@@ -1,0 +1,46 @@
+name: Fuzz
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    strategy:
+      # Run every target even if one finds a crash
+      fail-fast: false
+      matrix:
+        target:
+          - dns
+          - ether
+          - gre
+          - icmp
+          - icmpv6
+          - ipv4
+          - ipv6
+          - tcp
+          - udp
+          - vlan
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      # 15 minutes per target on pushes to main, 1 minute on pull requests.
+      - run: |
+          cargo +nightly fuzz run --target x86_64-unknown-linux-gnu ${{ matrix.target }} -- \
+            -max_total_time=${{ github.event_name == 'push' && '900' || '60' }}
+      # Preserve the crashing input so the failure can be reproduced locally
+      # with `cargo +nightly fuzz run <target> <artifact>`.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
