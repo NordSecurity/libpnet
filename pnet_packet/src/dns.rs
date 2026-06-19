@@ -462,7 +462,16 @@ pub struct DnsQuery {
 }
 
 fn qname_length(packet: &DnsQueryPacket) -> usize {
-    packet.packet().iter().take_while(|w| *w != &0).count() + 1
+    // The qname is a zero-terminated sequence of bytes, followed by the fixed
+    // qtype (2 bytes) and qclass (2 bytes). Never report a length that would push
+    // those trailing fixed fields past the end of the buffer, otherwise the
+    // generated qtype/qclass accessors would index out of bounds.
+    let data = packet.packet();
+    let max = data.len().saturating_sub(4);
+    match data.iter().take(max).position(|&b| b == 0) {
+        Some(zero_idx) => zero_idx + 1,
+        None => max,
+    }
 }
 
 impl DnsQuery {
