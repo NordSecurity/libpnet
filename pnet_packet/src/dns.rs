@@ -342,73 +342,95 @@ fn additional_length(packet: &DnsPacket) -> usize {
     length
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Opcode {
-    StandardQuery,
-    InverseQuery,
-    ServerStatusRequest,
-    Reserved,
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
+pub mod Opcodes {
+    use super::Opcode;
+
+    pub const StandardQuery: Opcode = Opcode(0);
+    pub const InverseQuery: Opcode = Opcode(1);
+    pub const ServerStatusRequest: Opcode = Opcode(2);
+    pub const Reserved: Opcode = Opcode(3);
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Opcode(pub u8);
+
+impl Opcode {
+    pub fn new(value: u8) -> Self {
+        Self(value)
+    }
 }
 
 impl PrimitiveValues for Opcode {
     type T = (u8,);
+
     fn to_primitive_values(&self) -> (u8,) {
-        match self {
-            Self::StandardQuery => (0,),
-            Self::InverseQuery => (1,),
-            Self::ServerStatusRequest => (2,),
-            Self::Reserved => (3,),
-        }
+        (self.0,)
     }
 }
 
-impl Opcode {
+impl fmt::Display for Opcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                &Opcodes::StandardQuery => "StandardQuery",       // 0
+                &Opcodes::InverseQuery => "InverseQuery",         // 1
+                &Opcodes::ServerStatusRequest => "ServerStatusRequest", // 2
+                &Opcodes::Reserved => "Reserved",                 // 3
+                _ => "unknown",
+            }
+        )
+    }
+}
+
+#[allow(non_snake_case)]
+#[allow(non_upper_case_globals)]
+pub mod Retcodes {
+    use super::Retcode;
+
+    pub const NoError: Retcode = Retcode(0);
+    pub const FormatError: Retcode = Retcode(1);
+    pub const ServerFailure: Retcode = Retcode(2);
+    pub const RecordNotExists: Retcode = Retcode(3);
+    pub const RequestTypeUnsupported: Retcode = Retcode(4);
+    pub const ServerPolicyError: Retcode = Retcode(5);
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Retcode(pub u8);
+
+impl Retcode {
     pub fn new(value: u8) -> Self {
-        match value {
-            0 => Self::StandardQuery,
-            1 => Self::InverseQuery,
-            2 => Self::ServerStatusRequest,
-            3 => Self::Reserved,
-            _ => unreachable!(),
-        }
+        Self(value)
     }
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum Retcode {
-    NoError,
-    FormatError,
-    ServerFailure,
-    RecordNotExists,
-    RequestTypeUnsupported,
-    ServerPolicyError,
 }
 
 impl PrimitiveValues for Retcode {
     type T = (u8,);
+
     fn to_primitive_values(&self) -> (u8,) {
-        match self {
-            Self::NoError => (0,),
-            Self::FormatError => (1,),
-            Self::ServerFailure => (2,),
-            Self::RecordNotExists => (3,),
-            Self::RequestTypeUnsupported => (4,),
-            Self::ServerPolicyError => (5,),
-        }
+        (self.0,)
     }
 }
 
-impl Retcode {
-    pub fn new(value: u8) -> Self {
-        match value {
-            0 => Self::NoError,
-            1 => Self::FormatError,
-            2 => Self::ServerFailure,
-            3 => Self::RecordNotExists,
-            4 => Self::RequestTypeUnsupported,
-            5 => Self::ServerPolicyError,
-            _ => unreachable!(),
-        }
+impl fmt::Display for Retcode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                &Retcodes::NoError => "NoError",                           // 0
+                &Retcodes::FormatError => "FormatError",                   // 1
+                &Retcodes::ServerFailure => "ServerFailure",               // 2
+                &Retcodes::RecordNotExists => "RecordNotExists",           // 3
+                &Retcodes::RequestTypeUnsupported => "RequestTypeUnsupported", // 4
+                &Retcodes::ServerPolicyError => "ServerPolicyError",       // 5
+                _ => "unknown",
+            }
+        )
     }
 }
 
@@ -472,13 +494,13 @@ fn test_dns_query_packet() {
     let packet = DnsPacket::new(b"\x9b\xa0\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00\x05_ldap\x04_tcp\x02dc\x06_msdcs\x05S4DOM\x07PRIVATE\x00\x00!\x00\x01").unwrap();
     assert_eq!(packet.get_id(), 39840);
     assert_eq!(packet.get_is_response(), 0);
-    assert_eq!(packet.get_opcode(), Opcode::StandardQuery);
+    assert_eq!(packet.get_opcode(), Opcodes::StandardQuery);
     assert_eq!(packet.get_is_authoriative(), 0);
     assert_eq!(packet.get_is_truncated(), 0);
     assert_eq!(packet.get_is_recursion_desirable(), 1);
     assert_eq!(packet.get_is_recursion_available(), 0);
     assert_eq!(packet.get_zero_reserved(), 0);
-    assert_eq!(packet.get_rcode(), Retcode::NoError);
+    assert_eq!(packet.get_rcode(), Retcodes::NoError);
     assert_eq!(packet.get_query_count(), 1);
     assert_eq!(packet.get_response_count(), 0);
     assert_eq!(packet.get_authority_rr_count(), 0);
@@ -500,13 +522,13 @@ fn test_dns_response_packet() {
     let packet = DnsPacket::new(b"\xbc\x12\x85\x80\x00\x01\x00\x01\x00\x00\x00\x00\x05s4dc1\x05samba\x08windows8\x07private\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x03\x84\x00\x04\xc0\xa8z\xbd").unwrap();
     assert_eq!(packet.get_id(), 48146);
     assert_eq!(packet.get_is_response(), 1);
-    assert_eq!(packet.get_opcode(), Opcode::StandardQuery);
+    assert_eq!(packet.get_opcode(), Opcodes::StandardQuery);
     assert_eq!(packet.get_is_authoriative(), 1);
     assert_eq!(packet.get_is_truncated(), 0);
     assert_eq!(packet.get_is_recursion_desirable(), 1);
     assert_eq!(packet.get_is_recursion_available(), 1);
     assert_eq!(packet.get_zero_reserved(), 0);
-    assert_eq!(packet.get_rcode(), Retcode::NoError);
+    assert_eq!(packet.get_rcode(), Retcodes::NoError);
     assert_eq!(packet.get_query_count(), 1);
     assert_eq!(packet.get_response_count(), 1);
     assert_eq!(packet.get_authority_rr_count(), 0);
