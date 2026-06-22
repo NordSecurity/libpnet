@@ -27,7 +27,6 @@ pub mod dhcp;
 pub mod dns;
 pub mod ethernet;
 pub mod flowcontrol;
-pub mod gre;
 pub mod icmp;
 pub mod icmpv6;
 pub mod ip;

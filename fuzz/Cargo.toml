@@ -39,10 +39,6 @@ name = "udp"
 path = "fuzzers/udp.rs"
 
 [[bin]]
-name = "gre"
-path = "fuzzers/gre.rs"
-
-[[bin]]
 name = "vlan"
 path = "fuzzers/vlan.rs"
 
