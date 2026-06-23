@@ -1,15 +1,22 @@
 #![no_main]
-extern crate libfuzzer_sys;
-extern crate pnet;
 
-use pnet::packet::Packet;
+use std::hint::black_box;
+
+use libfuzzer_sys::fuzz_target;
 use pnet::packet::udp::UdpPacket;
+use pnet::packet::{FromPacket, Packet, PacketSize};
 
-#[export_name="rust_fuzzer_test_input"]
-pub extern fn go(data: &[u8]) {
+fuzz_target!(|data: &[u8]| {
 	if let Some(udp) = UdpPacket::new(data) {
+		black_box(udp.get_source());
+		black_box(udp.get_destination());
+		black_box(udp.get_length());
+		black_box(udp.get_checksum());
+
 		for b in udp.payload().iter() {
-			*b;
+			black_box(*b);
 		}
+		black_box(udp.packet_size());
+		black_box(udp.from_packet());
 	}
-}
+});

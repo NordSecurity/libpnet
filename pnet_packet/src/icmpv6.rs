@@ -299,12 +299,9 @@ pub mod ndp {
 
     /// Calculate a length of a `NdpOption`'s payload.
     fn ndp_option_payload_length(option: &NdpOptionPacket) -> usize {
-        let len = option.get_length();
-        if len > 0 {
-            ((len * 8) - 2) as usize
-        } else {
-            0
-        }
+        let len = option.get_length() as usize;
+        let want = (len * 8).saturating_sub(2);
+        want.min(option.packet().len().saturating_sub(2))
     }
 
     /// Router Solicitation Message [RFC 4861 § 4.1]

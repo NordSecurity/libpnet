@@ -4,6 +4,7 @@ name = "pnet-fuzz"
 version = "0.0.1"
 authors = ["Automatically generated"]
 publish = false
+edition = "2021"
 
 [package.metadata]
 cargo-fuzz = true
@@ -26,6 +27,10 @@ name = "ipv4"
 path = "fuzzers/ipv4.rs"
 
 [[bin]]
+name = "ipv6"
+path = "fuzzers/ipv6.rs"
+
+[[bin]]
 name = "tcp"
 path = "fuzzers/tcp.rs"
 
@@ -34,9 +39,17 @@ name = "udp"
 path = "fuzzers/udp.rs"
 
 [[bin]]
-name = "gre"
-path = "fuzzers/gre.rs"
-
-[[bin]]
 name = "vlan"
 path = "fuzzers/vlan.rs"
+
+[[bin]]
+name = "icmp"
+path = "fuzzers/icmp.rs"
+
+[[bin]]
+name = "icmpv6"
+path = "fuzzers/icmpv6.rs"
+
+[[bin]]
+name = "dns"
+path = "fuzzers/dns.rs"

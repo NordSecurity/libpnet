@@ -22,5 +22,9 @@ fn print_link_search_path() {
 fn print_link_search_path() {}
 
 fn main() {
+    // `pnettest` holds live-network integration tests that require elevated
+    // privileges and real interfaces; gate them behind an opt-in custom cfg.
+    // Declare it so `unexpected_cfgs` doesn't flag the `#[cfg(pnet_test_network)]`.
+    println!("cargo::rustc-check-cfg=cfg(pnet_test_network)");
     print_link_search_path();
 }

@@ -10,7 +10,6 @@
 #![allow(missing_docs)]
 #![deny(warnings)]
 #![no_std]
-#![macro_use]
 
 extern crate alloc;
 
@@ -28,7 +27,6 @@ pub mod dhcp;
 pub mod dns;
 pub mod ethernet;
 pub mod flowcontrol;
-pub mod gre;
 pub mod icmp;
 pub mod icmpv6;
 pub mod ip;
